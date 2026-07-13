@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+test/deadlock_ab
+test/deadlock_self

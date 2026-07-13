@@ -1,0 +1,10 @@
+Vendored from: https://github.com/ruediger/Boost-Pretty-Printer
+Commit:        a0e2393441b0de8d4d2c83ce774ba9ea78b6f2cc  (2025-07-27)
+
+Local patches (reapply when re-vendoring):
+  * utils.py GDB_Value_Wrapper.__init__: upstream calls
+    `gdb.Value.__init__(value)` (missing `self`), which raises
+    "TypeError: function missing required argument 'val'" for every printed
+    value on gdb >= ~13 / Python >= 3.11. Fixed to `gdb.Value.__init__(self, value)`.
+
+Note: upstream tracks Boost only up to version 1.73 (last_supported_boost_version).
