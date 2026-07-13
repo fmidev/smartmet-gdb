@@ -15,7 +15,7 @@
 Summary: SmartMet gdb pretty-printers and deadlock analysis tools
 Name: %{SPECNAME}
 Version: 26.7.13
-Release: 1%{?dist}.fmi
+Release: 2%{?dist}.fmi
 License: MIT AND BSL-1.0
 Group: Development/Tools
 URL: https://github.com/fmidev/smartmet-gdb
@@ -78,7 +78,10 @@ grep -q "^SMARTMET_BOOST_VERSION = %{smartmet_boost_pin}$" \
 # unchecked-hash invalidation so Python treats the .pyc as always valid and
 # never tries to rewrite it -- the install dir is read-only for normal users
 # and root should not create unpackaged files there.
-gdb -nx -q -batch -ex "python import compileall, py_compile; compileall.compile_dir('$RPM_BUILD_ROOT%{pkgdir}', quiet=1, ddir='%{pkgdir}', invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)"
+# UNCHECKED_HASH invalidation needs Python >= 3.7 (gdb on RHEL9/10). On RHEL8
+# gdb embeds Python 3.6, so fall back to the default (timestamp) mode there --
+# safe because sys.dont_write_bytecode=True in the init prevents runtime writes.
+gdb -nx -q -batch -ex "python import compileall; pc=__import__('py_compile'); m=getattr(pc,'PycInvalidationMode',None); kw=({'invalidation_mode':m.UNCHECKED_HASH} if m else {}); compileall.compile_dir('$RPM_BUILD_ROOT%{pkgdir}', quiet=1, ddir='%{pkgdir}', **kw)"
 
 # Fail the build if bytecode was not produced (e.g. gdb without Python).
 test -n "$(find $RPM_BUILD_ROOT%{pkgdir} -name '*.pyc' -print -quit)" || {
@@ -97,6 +100,11 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/gdbinit.d/smartmet-gdb.gdb
 
 %changelog
+* Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-2.fmi
+- Fix build on RHEL8: gdb embeds Python 3.6 there, which lacks
+  py_compile.PycInvalidationMode; fall back to the default bytecode
+  invalidation mode when unchecked-hash is unavailable.
+
 * Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-1.fmi
 - Initial packaging: fmiprinters, updated Boost-Pretty-Printer, and the new
   deadlock analysis toolkit. Dropped the vendored libstdc++ printers in favour

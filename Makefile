@@ -24,8 +24,9 @@ install:
 	mkdir -p $(DESTDIR)$(sysconfdir)/gdbinit.d
 	install -m 0644 $(INITFILE) $(DESTDIR)$(sysconfdir)/gdbinit.d/$(INITFILE)
 	# Precompile with gdb's OWN embedded Python so the bytecode cache tag
-	# matches at runtime; unchecked-hash so Python never rewrites it.
-	gdb -nx -q -batch -ex "python import compileall, py_compile; compileall.compile_dir('$(DESTDIR)$(pkgdir)', quiet=1, ddir='$(pkgdir)', invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)"
+	# matches at runtime; unchecked-hash so Python never rewrites it (Python
+	# >= 3.7). RHEL8 gdb embeds Python 3.6 -> fall back to the default mode.
+	gdb -nx -q -batch -ex "python import compileall; pc=__import__('py_compile'); m=getattr(pc,'PycInvalidationMode',None); kw=({'invalidation_mode':m.UNCHECKED_HASH} if m else {}); compileall.compile_dir('$(DESTDIR)$(pkgdir)', quiet=1, ddir='$(pkgdir)', **kw)"
 
 rpm: clean
 	mkdir -p $(rpmsourcedir)
