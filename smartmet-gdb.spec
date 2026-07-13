@@ -15,7 +15,7 @@
 Summary: SmartMet gdb pretty-printers and deadlock analysis tools
 Name: %{SPECNAME}
 Version: 26.7.13
-Release: 2%{?dist}.fmi
+Release: 3%{?dist}.fmi
 License: MIT AND BSL-1.0
 Group: Development/Tools
 URL: https://github.com/fmidev/smartmet-gdb
@@ -33,8 +33,9 @@ Requires: gdb
 %description
 GDB Python helpers for debugging the SmartMet Server:
 
-  * fmiprinters -- pretty-printers for FMI types exposing to_string-like
-    methods (Fmi::date_time, TextGenPosixTime, ...).
+  * fmiprinters -- generic pretty-printer that renders any registered C++ type
+    by calling a stringification method (to_string, ToStr, c_str, ...); ships
+    rules for Fmi::date_time and TextGenPosixTime. Requires a live process.
   * boost -- the ruediger/Boost-Pretty-Printer package (Boost <= 1.73).
   * deadlock -- a wait-for-graph deadlock analyzer and pthread_mutex_t
     decoder, including the glibc dynamic-linker _dl_load_lock.
@@ -100,6 +101,11 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/gdbinit.d/smartmet-gdb.gdb
 
 %changelog
+* Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-3.fmi
+- fmiprinters: clarify that it is a generic stringify-method printer (not
+  FMI/time specific) and rename the registry ISO_PRINTERS ->
+  SPECIALIZED_PRINTERS (and add_iso_printer -> add_specialized_printer).
+
 * Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-2.fmi
 - Fix build on RHEL8: gdb embeds Python 3.6 there, which lacks
   py_compile.PycInvalidationMode; fall back to the default bytecode

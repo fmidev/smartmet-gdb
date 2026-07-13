@@ -11,7 +11,7 @@ into every gdb session via `/etc/gdbinit.d/smartmet-gdb.gdb`.
 | File | Purpose |
 |---|---|
 | `deadlock.py` | Wait-for-graph deadlock analyzer + `pthread_mutex_t` decoder, incl. the glibc dynamic-linker `_dl_load_lock`. See below. |
-| `fmiprinters.py` | Pretty-printers for FMI types with `to_string`-like methods (`Fmi::date_time::*`, `TextGenPosixTime`, ...). Extend `ISO_PRINTERS`. |
+| `fmiprinters.py` | Generic "call a stringification method" pretty-printer. Renders any registered C++ type by calling a method (`to_string`, `ToStr`, `c_str`, ...) and showing the result. Not FMI-specific — see below. |
 | `boost/` | The [ruediger/Boost-Pretty-Printer](https://github.com/ruediger/Boost-Pretty-Printer) package. See `boost/UPSTREAM_VERSION.txt` for the vendored commit. |
 | `smartmet-gdb.gdb` | The `/etc/gdbinit.d` drop-in that registers everything. |
 | `test/` | Synthetic deadlocks that validate `deadlock.py`. |
@@ -21,6 +21,52 @@ version-matched copy from the system `libstdc++` package (`std::string`,
 `std::vector`, ... just work), on RHEL8 (`/usr/share/gcc-8/...`) and RHEL10
 alike. A frozen vendored copy would be redundant and could mis-print types
 whose layout changed.
+
+## fmiprinters — stringify-method pretty-printer
+
+`fmiprinters` is a small **generic** framework: for a registered C++ type it
+calls a configured member method and shows the returned string as the value.
+It is **not** limited to FMI types, and **not** limited to time/ISO strings —
+that is just what the default rules happen to cover. Any class with a method
+that returns a string (or a `std::string`) can be added.
+
+What it supports:
+
+- **Any registered class**, matched by fully-qualified name (extra leading
+  namespaces are tolerated). Registration is explicit — you opt each type in.
+- **Any stringification method**: `to_string`, `str`, `ToStr`, `c_str`,
+  `to_iso_extended_string`, `ToIsoExtendedStr`, … — whatever the class offers.
+- **Methods that take constant arguments**, e.g. `("(126)")` or `("(true, 3)")`.
+- **Either return type**: a `std::string` (rendered via `.c_str()`) or a plain
+  `const char*`. Three fallback strategies cope with both plus awkward cases.
+
+Ships with these default rules (in `SPECIALIZED_PRINTERS`):
+
+| Type | Method |
+|---|---|
+| `Fmi::date_time::DateTime` | `to_iso_extended_string()` |
+| `Fmi::date_time::Date` | `to_iso_extended_string()` |
+| `Fmi::date_time::TimeDuration` | `to_iso_extended_string()` |
+| `TextGenPosixTime` | `ToIsoExtendedStr()` |
+
+The dict is named `SPECIALIZED_PRINTERS` because it holds the *specialized*
+cases — classes whose conversion has a non-obvious name or takes arguments —
+not because it is limited to any particular kind of type.
+
+Add your own:
+
+```
+(gdb) python import fmiprinters
+(gdb) python fmiprinters.add_specialized_printer("My::Class", "to_string")
+(gdb) python fmiprinters.register_fmi_printers(None)   # re-register
+(gdb) python fmiprinters.show_registered_types()       # inspect
+```
+
+**Important:** rendering *calls a function in the inferior*, so these printers
+require a **live process** — they do not fire on a core dump (gdb cannot call
+functions without a running program, so it shows the default struct dump
+there). For post-mortem work, rely on data-only printers (libstdc++, Boost)
+and the deadlock analyzer instead.
 
 ## The deadlock analyzer
 
