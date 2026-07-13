@@ -15,7 +15,7 @@
 Summary: SmartMet gdb pretty-printers and deadlock analysis tools
 Name: %{SPECNAME}
 Version: 26.7.13
-Release: 3%{?dist}.fmi
+Release: 4%{?dist}.fmi
 License: MIT AND BSL-1.0
 Group: Development/Tools
 URL: https://github.com/fmidev/smartmet-gdb
@@ -33,9 +33,11 @@ Requires: gdb
 %description
 GDB Python helpers for debugging the SmartMet Server:
 
-  * fmiprinters -- generic pretty-printer that renders any registered C++ type
-    by calling a stringification method (to_string, ToStr, c_str, ...); ships
-    rules for Fmi::date_time and TextGenPosixTime. Requires a live process.
+  * fmiprinters -- generic pretty-printer that renders a C++ object by calling
+    a stringification method. Auto-detects to_string/toString/str/ToStr/c_str
+    on unknown types (toggle: set fmi-auto-tostring off) and has explicit rules
+    for oddly-named/arg-taking methods (Fmi::date_time, TextGenPosixTime).
+    Requires a live process (calls a function in the inferior).
   * boost -- the ruediger/Boost-Pretty-Printer package (Boost <= 1.73).
   * deadlock -- a wait-for-graph deadlock analyzer and pthread_mutex_t
     decoder, including the glibc dynamic-linker _dl_load_lock.
@@ -101,6 +103,13 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/gdbinit.d/smartmet-gdb.gdb
 
 %changelog
+* Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-4.fmi
+- fmiprinters: automatically detect and call a stringification method
+  (to_string/toString/str/ToStr/c_str) on unregistered types. Detection is
+  cached per type, skips library namespaces, and falls back silently when the
+  method cannot be called (inlined or core dump). New toggle:
+  `set fmi-auto-tostring on|off`.
+
 * Mon Jul 13 2026 Mika Heiskanen <mika.heiskanen@fmi.fi> - 26.7.13-3.fmi
 - fmiprinters: clarify that it is a generic stringify-method printer (not
   FMI/time specific) and rename the registry ISO_PRINTERS ->

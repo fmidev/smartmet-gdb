@@ -30,17 +30,28 @@ It is **not** limited to FMI types, and **not** limited to time/ISO strings —
 that is just what the default rules happen to cover. Any class with a method
 that returns a string (or a `std::string`) can be added.
 
-What it supports:
+It works two ways:
 
-- **Any registered class**, matched by fully-qualified name (extra leading
-  namespaces are tolerated). Registration is explicit — you opt each type in.
-- **Any stringification method**: `to_string`, `str`, `ToStr`, `c_str`,
-  `to_iso_extended_string`, `ToIsoExtendedStr`, … — whatever the class offers.
-- **Methods that take constant arguments**, e.g. `("(126)")` or `("(true, 3)")`.
-- **Either return type**: a `std::string` (rendered via `.c_str()`) or a plain
-  `const char*`. Three fallback strategies cope with both plus awkward cases.
+1. **Automatic detection** (on by default). For any *unregistered* class,
+   fmiprinters looks for a conventional stringification method — `to_string`,
+   `toString`, `str`, `ToStr`, `c_str` — and, if the class has one, calls it.
+   Whether a type has a usable method is probed once per type and cached, so
+   there is no per-value cost after the first encounter. Library namespaces
+   (`std::`, `boost::`, `__gnu_cxx::`, …) are skipped so their own printers
+   win, and a type whose method can't be called (inlined-away, or on a core
+   dump) silently falls back to gdb's default dump. Toggle it with:
 
-Ships with these default rules (in `SPECIALIZED_PRINTERS`):
+   ```
+   (gdb) set fmi-auto-tostring off
+   ```
+
+2. **Explicit rules** in `SPECIALIZED_PRINTERS`, for the cases automatic
+   detection can't guess: a non-conventional method name or a method that
+   needs **constant arguments** (e.g. `"(126)"`). These take precedence over
+   automatic detection and support either return type — a `std::string`
+   (read via `.c_str()`) or a plain `const char*`.
+
+Ships with these explicit rules (in `SPECIALIZED_PRINTERS`):
 
 | Type | Method |
 |---|---|
