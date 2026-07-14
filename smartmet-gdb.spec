@@ -1,4 +1,3 @@
-%define DIRNAME gdb
 %define SPECNAME smartmet-gdb
 %define pkgdir %{_datadir}/smartmet-gdb
 
@@ -48,7 +47,7 @@ shipped here: gdb auto-loads the version-matched copy from the system
 libstdc++ package.
 
 %prep
-%setup -q -n %{DIRNAME}
+%setup -q -n %{SPECNAME}
 
 %build
 # Pure Python / data: nothing to compile here. Bytecode is generated in

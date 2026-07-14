@@ -1,4 +1,3 @@
-NAME = gdb
 SPECNAME = smartmet-gdb
 rpmsourcedir = /tmp/$(shell whoami)/rpmbuild
 
@@ -30,9 +29,12 @@ install:
 
 rpm: clean
 	mkdir -p $(rpmsourcedir)
-	tar -C ../ --exclude-vcs --exclude='$(NAME)/test/deadlock_ab' --exclude='$(NAME)/test/deadlock_self' \
-		-cf $(rpmsourcedir)/$(SPECNAME).tar $(NAME)
-	gzip -f $(rpmsourcedir)/$(SPECNAME).tar
+	# Archive the contents of the current directory (not `../$(dir)`), remapping
+	# every path under $(SPECNAME)/ so the tarball layout is independent of the
+	# checkout directory name (locally "gdb", on CircleCI "smartmet-gdb").
+	tar --exclude-vcs --exclude='./test/deadlock_ab' --exclude='./test/deadlock_self' \
+		--transform 's,^\.,$(SPECNAME),' \
+		-czf $(rpmsourcedir)/$(SPECNAME).tar.gz .
 	rpmbuild -v -ta $(rpmsourcedir)/$(SPECNAME).tar.gz
 
 test:
